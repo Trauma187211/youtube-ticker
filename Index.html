@@ -1,0 +1,200 @@
+!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>YouTube Now Playing Ticker</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      font-family: Inter, "Arial Narrow", Arial, sans-serif;
+      --ticker-height: 48px;
+      --red: #ed1c24;
+      --ink: #101216;
+      --crawl-seconds: 34s;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      overflow: hidden;
+      background: transparent;
+    }
+
+    .ticker {
+      position: fixed;
+      right: 0;
+      bottom: 0;
+      left: 0;
+      display: flex;
+      height: var(--ticker-height);
+      overflow: hidden;
+      color: #fff;
+      background: rgb(16 18 22 / 96%);
+      border-top: 2px solid var(--red);
+      box-shadow: 0 -5px 18px rgb(0 0 0 / 24%);
+      isolation: isolate;
+    }
+
+    .lead-in {
+      z-index: 1;
+      display: flex;
+      flex: 0 0 auto;
+      align-items: center;
+      gap: 9px;
+      min-width: 174px;
+      padding: 0 16px;
+      background: var(--red);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0.1em;
+      line-height: 1;
+      text-transform: uppercase;
+      box-shadow: 5px 0 12px rgb(0 0 0 / 22%);
+    }
+
+    .live-dot {
+      width: 7px;
+      height: 7px;
+      flex: 0 0 7px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 0 9px rgb(255 255 255 / 70%);
+    }
+
+    .channel {
+      overflow: hidden;
+      color: rgb(255 255 255 / 76%);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .crawl-window {
+      display: flex;
+      flex: 1;
+      align-items: center;
+      min-width: 0;
+      overflow: hidden;
+      mask-image: linear-gradient(90deg, #000 0%, #000 95%, transparent 100%);
+    }
+
+    .crawl-track {
+      display: flex;
+      width: max-content;
+      flex: 0 0 auto;
+      align-items: center;
+      animation: crawl var(--crawl-seconds) linear infinite;
+      will-change: transform;
+    }
+
+    .crawl-copy {
+      display: flex;
+      flex: 0 0 auto;
+      align-items: center;
+      padding-left: 36px;
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 0.015em;
+      white-space: nowrap;
+    }
+
+    .separator {
+      margin: 0 15px;
+      color: var(--red);
+      font-size: 11px;
+    }
+
+    @keyframes crawl {
+      to {
+        transform: translateX(-50%);
+      }
+    }
+
+    @media (max-width: 520px) {
+      :root {
+        --ticker-height: 42px;
+      }
+
+      .lead-in {
+        min-width: 145px;
+        gap: 7px;
+        padding: 0 11px;
+        font-size: 10px;
+      }
+
+      .crawl-copy {
+        font-size: 14px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .crawl-track {
+        animation-duration: calc(var(--crawl-seconds) * 2);
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="ticker" aria-label="YouTube now playing ticker">
+    <div class="lead-in">
+      <span class="live-dot" aria-hidden="true"></span>
+      <span>Now Playing</span>
+      <span class="channel" id="channel"></span>
+    </div>
+    <div class="crawl-window">
+      <div class="crawl-track" id="crawl-track" aria-live="off"></div>
+    </div>
+  </main>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const title = params.get("text") || "Welcome to the stream";
+    const channel = params.get("channel") || "";
+    const requestedSpeed = Number(params.get("speed"));
+    const speed = Number.isFinite(requestedSpeed)
+      ? Math.min(120, Math.max(10, requestedSpeed))
+      : 34;
+
+    document.documentElement.style.setProperty("--crawl-seconds", `${speed}s`);
+    document.getElementById("channel").textContent = channel;
+
+    const track = document.getElementById("crawl-track");
+    const crawlWindow = document.querySelector(".crawl-window");
+
+    function renderCrawl() {
+      track.replaceChildren();
+
+      const copy = document.createElement("span");
+      copy.className = "crawl-copy";
+      copy.setAttribute("aria-hidden", "true");
+
+      do {
+        const message = document.createElement("span");
+        message.textContent = title;
+        copy.append(message);
+
+        const separator = document.createElement("span");
+        separator.className = "separator";
+        separator.setAttribute("aria-hidden", "true");
+        separator.textContent = "◆";
+        copy.append(separator);
+      } while (copy.scrollWidth < crawlWindow.clientWidth + 50);
+
+      track.append(copy, copy.cloneNode(true));
+    }
+
+    renderCrawl();
+    window.addEventListener("resize", renderCrawl);
+  </script>
+</body>
+</html>
